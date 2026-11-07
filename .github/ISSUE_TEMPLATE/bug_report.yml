@@ -1,0 +1,61 @@
+name: Bug 报告
+description: 启动失败、崩溃、显示异常等
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **请注意脱敏**：日志里可能包含 `C:\Users\<你的用户名>` 和媒体真实路径，粘贴前请替换掉。
+  - type: input
+    id: version
+    attributes:
+      label: Lumen 版本
+      placeholder: 1.0.0
+    validations:
+      required: true
+  - type: dropdown
+    id: package
+    attributes:
+      label: 你用的是哪个包
+      options:
+        - 安装包（LumenSetup.exe）
+        - 绿色版（Lumen-*-windows-x64.zip）
+        - 从源码运行
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: 系统版本
+      placeholder: Windows 11 23H2 / Windows 10 22H2
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: 现象
+      description: 发生了什么？期望是什么？
+      placeholder: 双击后窗口一片白，标题栏显示未响应，约 15 秒后自己关了。
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      placeholder: |
+        1. 解压到 D:\Lumen
+        2. 双击 Lumen.exe
+        3. 窗口白屏
+  - type: textarea
+    id: log
+    attributes:
+      label: 启动日志（安装目录下 data\startup.log，最后 20 行）
+      description: 请先抹掉用户名与真实媒体路径
+      render: text
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: 自查
+      options:
+        - label: 我确认整个文件夹一起解压了（不是只拷了 exe）
+        - label: 我确认日志里已抹掉个人路径

@@ -1,0 +1,29 @@
+name: 功能建议
+description: 想要的新能力或改进
+labels: [enhancement]
+body:
+  - type: textarea
+    id: scene
+    attributes:
+      label: 使用场景
+      description: 你在做什么事情的时候觉得不方便？
+      placeholder: 我把三万张图按活动分了文件夹，但想按拍摄月份批量打标签，现在只能一个一个点。
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: 你希望它怎么工作
+      placeholder: 希望分组视图里能选中「2026 年 5 月」整组，然后批量打标签。
+    validations:
+      required: true
+  - type: textarea
+    id: alt
+    attributes:
+      label: 现在怎么绕过去的（可选）
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: 边界
+      options:
+        - label: 这个需求不需要联网 / 云同步（Lumen 坚持纯本地）
