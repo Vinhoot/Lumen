@@ -1,0 +1,51 @@
+# ---- 运行数据：绝不提交 ----
+data/
+_tmp/
+webview2/
+*.db
+*.db-wal
+*.db-shm
+*.db.gz
+*.log
+*.pending
+*.dirty
+app.lock
+browser-profile/
+
+# ---- 打包产物 ----
+dist/
+dist_installer/
+build/
+build_installer/
+*.spec.bak
+*.pkg
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.pyo
+runtime/
+.venv/
+venv/
+*.egg-info/
+
+# ---- 本地实验 / 个人素材：绝不提交 ----
+mv_test_*/
+tools/_out/
+tools/_promo_data/
+tools/_promo_media/
+tools/_icon_options/
+promo/
+noex_*.txt
+release/
+
+# ---- 编辑器 / 系统 ----
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# 本机隐私词表（只存本地）
+tools/.privacy_local.txt
+_audit_out/

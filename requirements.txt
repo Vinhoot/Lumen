@@ -1,0 +1,11 @@
+# 运行依赖（Windows）
+pywebview==5.4
+pythonnet==3.0.5
+clr-loader==0.2.10
+pillow>=10.0
+imageio-ffmpeg>=0.4.9
+defusedxml>=0.7
+bottle>=0.13
+
+# 打包（可选）
+pyinstaller>=6.10

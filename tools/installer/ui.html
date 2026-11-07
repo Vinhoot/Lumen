@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>Lumen Setup</title>
+<style>
+:root {
+  --accent: #0A84FF;
+  --coral-1: #FFBA92;
+  --coral-2: #FF7A60;
+  --coral-3: #D63E4E;
+  --label: rgba(255,255,255,.94);
+  --label-2: rgba(255,255,255,.60);
+  --label-3: rgba(255,255,255,.36);
+  --sep: rgba(255,255,255,.10);
+  --fill: rgba(255,255,255,.07);
+  --fill-2: rgba(255,255,255,.12);
+  --glass: rgba(44,44,48,.72);
+  --edge: rgba(255,255,255,.14);
+  --spring: cubic-bezier(.36, 1.4, .42, 1);
+  --ease: cubic-bezier(.22, 1, .36, 1);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+  font-family: "Microsoft YaHei UI", "PingFang SC", system-ui, sans-serif;
+  font-size: 13px; color: var(--label);
+  background:
+    radial-gradient(900px 600px at 0% 0%, #24304e 0%, transparent 60%),
+    radial-gradient(760px 560px at 100% 8%, #2f2545 0%, transparent 55%),
+    radial-gradient(800px 700px at 55% 118%, #15303d 0%, transparent 60%),
+    #141416;
+  overflow: hidden; user-select: none; -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- 窗口外壳 ---------- */
+.shell {
+  height: 100%; display: flex; flex-direction: column;
+  border: 1px solid rgba(255,255,255,.10);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.10);
+}
+
+/* ---------- 标题栏（拖窗区） ---------- */
+.titlebar {
+  height: 46px; flex: 0 0 46px; display: flex; align-items: center;
+  gap: 9px; padding: 0 12px 0 16px;
+}
+.brand { width: 20px; height: 20px; flex: 0 0 20px; }
+.brand svg { width: 100%; height: 100%; display: block; }
+.titlebar b { font-size: 13px; font-weight: 600; letter-spacing: .01em; }
+.titlebar .tag {
+  font-size: 11px; color: var(--label-3); padding: 1px 7px;
+  border: 1px solid var(--sep); border-radius: 20px;
+}
+.spacer { flex: 1 1 auto; }
+.icobtn {
+  width: 26px; height: 26px; border-radius: 7px; border: 0; cursor: pointer;
+  background: transparent; color: var(--label-2);
+  display: grid; place-items: center; transition: background .16s, color .16s;
+}
+.icobtn:hover { background: rgba(255,69,58,.85); color: #fff; }
+.icobtn svg { width: 13px; height: 13px; stroke: currentColor; stroke-width: 2; fill: none; }
+
+/* ---------- 主体 ---------- */
+.body { flex: 1 1 auto; padding: 6px 34px 0; overflow: hidden; position: relative; }
+.step { display: none; height: 100%; flex-direction: column; }
+.step.on { display: flex; animation: rise .32s var(--ease) both; }
+@keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+h1 { font-size: 25px; font-weight: 600; letter-spacing: -.01em; }
+.sub { margin-top: 7px; font-size: 12.5px; color: var(--label-2); line-height: 1.7; }
+
+/* ---------- 安装位置 ---------- */
+.field { margin-top: 26px; }
+.field > label { font-size: 11.5px; color: var(--label-3); letter-spacing: .04em; }
+.pathrow { display: flex; gap: 8px; margin-top: 8px; }
+.pathbox {
+  flex: 1 1 auto; height: 38px; border-radius: 10px; display: flex; align-items: center;
+  padding: 0 12px; background: var(--fill); border: 1px solid var(--sep);
+  transition: border-color .18s, background .18s;
+}
+.pathbox:focus-within { border-color: rgba(255,122,96,.55); background: var(--fill-2); }
+.pathbox input {
+  flex: 1 1 auto; background: transparent; border: 0; outline: none;
+  color: var(--label); font-size: 12.5px; font-family: inherit; user-select: text;
+}
+.btn {
+  height: 38px; padding: 0 16px; border-radius: 10px; cursor: pointer;
+  border: 1px solid var(--sep); background: var(--fill); color: var(--label);
+  font-size: 12.5px; font-family: inherit; transition: background .16s, transform .12s var(--spring);
+  white-space: nowrap;
+}
+.btn:hover { background: var(--fill-2); }
+.btn:active { transform: scale(.975); }
+.btn:disabled { opacity: .45; cursor: default; }
+.hint { margin-top: 10px; font-size: 11.5px; color: var(--label-3); }
+.hint b { color: var(--label-2); font-weight: 500; }
+.warn {
+  margin-top: 10px; font-size: 11.5px; line-height: 1.6; padding: 8px 11px;
+  border-radius: 9px; background: rgba(255,159,10,.14); color: #FFC46B;
+  border: 1px solid rgba(255,159,10,.28); display: none;
+}
+.warn.show { display: block; }
+.err {
+  margin-top: 10px; font-size: 11.5px; line-height: 1.6; padding: 9px 11px;
+  border-radius: 9px; background: rgba(255,69,58,.14); color: #FF8A80;
+  border: 1px solid rgba(255,69,58,.3); display: none;
+}
+.err.show { display: block; }
+
+/* ---------- 选项 ---------- */
+.opts { margin-top: 22px; border-top: 1px solid var(--sep); padding-top: 16px; }
+.opt {
+  display: flex; align-items: center; gap: 10px; padding: 7px 0; cursor: pointer;
+}
+.opt .box {
+  width: 17px; height: 17px; flex: 0 0 17px; border-radius: 5px;
+  border: 1.5px solid rgba(255,255,255,.28); display: grid; place-items: center;
+  transition: background .16s, border-color .16s, transform .12s var(--spring);
+}
+.opt .box svg { width: 10px; height: 10px; stroke: #fff; stroke-width: 2.6; fill: none; opacity: 0; transition: opacity .14s; }
+.opt:hover .box { border-color: rgba(255,255,255,.45); }
+.opt.on .box {
+  background: linear-gradient(180deg, var(--coral-2), var(--coral-3));
+  border-color: transparent; box-shadow: 0 2px 8px rgba(214,62,78,.35);
+}
+.opt.on .box svg { opacity: 1; }
+.opt .txt { font-size: 12.5px; color: var(--label); }
+.opt .txt i { font-style: normal; color: var(--label-3); font-size: 11.5px; margin-left: 6px; }
+
+/* ---------- 底部 ---------- */
+.footer {
+  flex: 0 0 auto; padding: 16px 34px 22px; display: flex; align-items: center; gap: 12px;
+}
+.footer .note { font-size: 11px; color: var(--label-3); line-height: 1.5; flex: 1 1 auto; }
+.primary {
+  height: 40px; padding: 0 24px; border-radius: 11px; border: 0; cursor: pointer;
+  font-size: 13px; font-weight: 500; font-family: inherit; color: #fff;
+  background: linear-gradient(180deg, var(--coral-2), var(--coral-3));
+  box-shadow: 0 6px 18px rgba(214,62,78,.32), inset 0 1px 0 rgba(255,255,255,.28);
+  transition: filter .16s, transform .12s var(--spring);
+}
+.primary:hover { filter: brightness(1.07); }
+.primary:active { transform: scale(.975); }
+.primary:disabled { filter: grayscale(.5) brightness(.8); cursor: default; box-shadow: none; }
+
+/* ---------- 进度 ---------- */
+.progwrap { margin-top: 34px; }
+.progbar {
+  height: 8px; border-radius: 20px; background: rgba(255,255,255,.09); overflow: hidden;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,.35);
+}
+.progbar i {
+  display: block; height: 100%; width: 0%; border-radius: 20px;
+  background: linear-gradient(90deg, var(--coral-1), var(--coral-2) 55%, var(--coral-3));
+  box-shadow: 0 0 14px rgba(255,122,96,.45);
+  transition: width .28s var(--ease);
+}
+.progmeta { display: flex; justify-content: space-between; margin-top: 11px; font-size: 11.5px; }
+.progmeta .pct { color: var(--label); font-variant-numeric: tabular-nums; font-weight: 500; }
+.progmeta .file { color: var(--label-3); max-width: 74%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: rtl; text-align: right; }
+.tipline { margin-top: 26px; font-size: 11.5px; color: var(--label-3); line-height: 1.7; }
+.spin {
+  width: 15px; height: 15px; border-radius: 50%; border: 2px solid rgba(255,255,255,.16);
+  border-top-color: var(--coral-2); animation: sp .8s linear infinite; display: inline-block;
+  vertical-align: -2px; margin-right: 7px;
+}
+@keyframes sp { to { transform: rotate(360deg); } }
+
+/* ---------- 完成 ---------- */
+.done-head { display: flex; align-items: center; gap: 14px; margin-top: 6px; }
+.tick {
+  width: 44px; height: 44px; flex: 0 0 44px; border-radius: 50%; display: grid; place-items: center;
+  background: linear-gradient(180deg, #34D399, #0E9F6E);
+  box-shadow: 0 8px 22px rgba(14,159,110,.34), inset 0 1px 0 rgba(255,255,255,.35);
+  animation: pop .45s var(--spring) both;
+}
+.tick svg { width: 22px; height: 22px; stroke: #fff; stroke-width: 2.6; fill: none; }
+@keyframes pop { from { transform: scale(.55); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.done-path {
+  margin-top: 22px; padding: 12px 14px; border-radius: 10px; background: var(--fill);
+  border: 1px solid var(--sep); font-size: 11.5px; color: var(--label-2);
+  word-break: break-all; line-height: 1.6; user-select: text;
+}
+.done-path b { display: block; font-size: 11px; color: var(--label-3); font-weight: 400; margin-bottom: 4px; }
+.links { margin-top: 18px; display: flex; gap: 9px; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="titlebar pywebview-drag-region">
+    <span class="brand">
+      <svg viewBox="0 0 1024 1024">
+        <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#FFBA92"/><stop offset=".55" stop-color="#FF7A60"/>
+          <stop offset="1" stop-color="#D63E4E"/></linearGradient></defs>
+        <rect width="1024" height="1024" rx="230" fill="url(#g)"/>
+        <rect x="368" y="296" width="360" height="288" rx="56" fill="#fff" opacity=".42"/>
+        <rect x="296" y="380" width="360" height="288" rx="56" fill="#fff"/>
+        <circle cx="404" cy="472" r="38" fill="#EE6D55"/>
+        <path d="M340 628 472 492 604 628z" fill="#EE6D55"/>
+        <rect x="336" y="634" width="280" height="26" rx="13" fill="#EE6D55"/>
+      </svg>
+    </span>
+    <b>Lumen</b><span class="tag" id="verTag">安装程序</span>
+    <span class="spacer"></span>
+    <button class="icobtn" id="btnClose" title="退出">
+      <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
+
+  <div class="body">
+    <!-- ========== 步骤 1：选择位置 ========== -->
+    <div class="step on" id="step1">
+      <h1>安装 Lumen</h1>
+      <div class="sub">本地图片 / 视频媒体库 · 纯本地运行，不上传任何数据。<br>
+        装好后桌面会有快捷方式，双击即用，不需要 Python 或任何环境。</div>
+
+      <div class="field">
+        <label>安装位置</label>
+        <div class="pathrow">
+          <div class="pathbox"><input id="path" spellcheck="false"></div>
+          <button class="btn" id="btnBrowse">浏览…</button>
+        </div>
+        <div class="hint" id="spaceHint">正在读取磁盘信息…</div>
+        <div class="warn" id="runWarn">检测到 <b>Lumen</b> 正在运行，请先关闭软件再点安装。</div>
+        <div class="err" id="errBox"></div>
+      </div>
+
+      <div class="opts">
+        <div class="opt on" data-opt="desktop">
+          <span class="box"><svg viewBox="0 0 24 24"><path d="M4 12.5 10 18.5 20 6"/></svg></span>
+          <span class="txt">创建桌面快捷方式</span>
+        </div>
+        <div class="opt on" data-opt="startmenu">
+          <span class="box"><svg viewBox="0 0 24 24"><path d="M4 12.5 10 18.5 20 6"/></svg></span>
+          <span class="txt">创建开始菜单快捷方式<i>（含「卸载 Lumen」入口）</i></span>
+        </div>
+        <div class="opt on" data-opt="launch">
+          <span class="box"><svg viewBox="0 0 24 24"><path d="M4 12.5 10 18.5 20 6"/></svg></span>
+          <span class="txt">安装完成后立即启动<i>（首次启动需要几秒初始化）</i></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== 步骤 2：安装中 ========== -->
+    <div class="step" id="step2">
+      <h1>正在安装…</h1>
+      <div class="sub">正在把程序文件释放到你的电脑，请勿关闭窗口。</div>
+      <div class="progwrap">
+        <div class="progbar"><i id="bar"></i></div>
+        <div class="progmeta"><span class="pct" id="pct">0%</span><span class="file" id="curFile"></span></div>
+      </div>
+      <div class="tipline"><span class="spin"></span>媒体库数据会保存在安装目录的 <b>data</b> 文件夹，
+        卸载时可选择是否保留。</div>
+    </div>
+
+    <!-- ========== 步骤 3：完成 ========== -->
+    <div class="step" id="step3">
+      <div class="done-head">
+        <span class="tick"><svg viewBox="0 0 24 24"><path d="M4 12.5 10 18.5 20 6"/></svg></span>
+        <div><h1>安装完成</h1><div class="sub" style="margin-top:4px">现在就可以开始整理你的图片和视频了。</div></div>
+      </div>
+      <div class="done-path"><b>安装位置</b><span id="donePath"></span></div>
+      <div class="hint" id="regHint" style="display:none">未能写入系统「应用和功能」卸载项，
+        可随时运行安装目录里的 <b>uninstall.ps1</b> 卸载。</div>
+      <div class="links">
+        <button class="btn" id="btnOpenDir">打开安装目录</button>
+        <button class="btn" id="btnClose2">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="note" id="footNote">安装包已内置全部运行环境与依赖，无需联网。</div>
+    <button class="primary" id="btnInstall">开始安装</button>
+    <button class="primary" id="btnLaunch" style="display:none">立即启动</button>
+  </div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let INFO = null;
+let opts = { desktop: true, startmenu: true, launch: true };
+let installedDir = '';
+
+/* ---- 选项开关 ---- */
+document.querySelectorAll('.opt').forEach(el => {
+  el.addEventListener('click', () => {
+    const k = el.dataset.opt;
+    opts[k] = !opts[k];
+    el.classList.toggle('on', opts[k]);
+  });
+});
+
+/* ---- 关闭 ---- */
+const closeApp = () => { try { window.pywebview.api.close(); } catch (_) {} };
+$('btnClose').addEventListener('click', closeApp);
+$('btnClose2').addEventListener('click', closeApp);
+
+/* ---- 读取环境信息 ---- */
+const norm = (p) => String(p || '').replace(/[\\/]+$/, '').toLowerCase().replace(/\//g, '\\');
+const busyAt = (p) => ((INFO && INFO.runningDirs) || []).some(d => norm(d) === norm(p));
+const refreshWarn = () => {
+  $('runWarn').classList.toggle('show', busyAt($('path').value));
+};
+
+async function boot() {
+  try {
+    INFO = await window.pywebview.api.getInfo();
+    $('path').value = INFO.defaultDir;
+    $('verTag').textContent = '安装程序 · v' + INFO.version;
+    $('spaceHint').innerHTML =
+      '需要约 <b>' + INFO.needSpace + '</b> 空间（程序 ' + INFO.appSize +
+      '） · 当前磁盘可用 <b>' + INFO.freeSpace + '</b>';
+    $('footNote').textContent = '安装包已内置全部运行环境与依赖（' + INFO.appSize + '），无需联网。';
+    refreshWarn();
+  } catch (e) {
+    $('spaceHint').textContent = '读取磁盘信息失败，可直接继续安装。';
+  }
+}
+/* ---- 等待 API 就绪（轮询，避免错过 pywebviewready 事件） ---- */
+function waitApi(cb) {
+  if (window.pywebview && window.pywebview.api && window.pywebview.api.getInfo) {
+    cb();
+    return;
+  }
+  setTimeout(() => waitApi(cb), 120);
+}
+waitApi(boot);
+$('path').addEventListener('input', refreshWarn);
+
+/* ---- 浏览目录 ---- */
+$('btnBrowse').addEventListener('click', async () => {
+  const r = await window.pywebview.api.pickFolder();
+  if (r && r.ok && r.path) $('path').value = r.path;
+});
+
+/* ---- 开始安装 ---- */
+$('btnInstall').addEventListener('click', () => {
+  const dir = $('path').value.trim();
+  if (!dir) { return showErr('请填写安装位置'); }
+  $('errBox').classList.remove('show');
+  if (busyAt(dir)) { $('runWarn').classList.add('show'); return; }
+  switchStep(2);
+  window.pywebview.api.startInstall(dir, opts.desktop, opts.startmenu).then(r => {
+    if (r && !r.ok) { switchStep(1); showErr(r.error || '启动安装失败'); }
+  });
+});
+
+function showErr(msg) {
+  $('errBox').textContent = msg;
+  $('errBox').classList.add('show');
+}
+
+function switchStep(n) {
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('on'));
+  $('step' + n).classList.add('on');
+  $('btnInstall').style.display = n === 1 ? '' : 'none';
+  $('btnLaunch').style.display = n === 3 ? '' : 'none';
+}
+
+/* ---- 进度回调（Python 侧调用） ---- */
+window.__onProgress = function (o) {
+  if (typeof o === 'number') return;
+  if (o.pct != null) {
+    const p = Math.max(0, Math.min(100, o.pct));
+    $('bar').style.width = p + '%';
+    $('pct').textContent = p + '%';
+  }
+  if (o.msg) $('curFile').textContent = o.msg;
+  if (o.done) {
+    if (o.ok) {
+      installedDir = o.dir;
+      $('donePath').textContent = o.dir;
+      $('regHint').style.display = o.registry === false ? 'block' : 'none';
+      switchStep(3);
+      if (opts.launch) setTimeout(() => doLaunch(), 600);
+    } else {
+      switchStep(1);
+      showErr(o.error || '安装失败，请换个安装位置重试');
+    }
+  }
+};
+
+/* ---- 启动 / 打开目录 ---- */
+async function doLaunch() {
+  if (!installedDir) return;
+  try { await window.pywebview.api.launch(installedDir); } catch (_) {}
+  setTimeout(closeApp, 700);
+}
+$('btnLaunch').addEventListener('click', doLaunch);
+$('btnOpenDir').addEventListener('click', () => {
+  if (installedDir) window.pywebview.api.openDir(installedDir);
+});
+</script>
+</body>
+</html>

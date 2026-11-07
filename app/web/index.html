@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lumen</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div class="window">
+
+  <!-- ============ 统一标题栏（frameless 自绘，pywebview-drag-region 拖窗） ============ -->
+  <div class="titlebar pywebview-drag-region" id="titlebar">
+    <!-- 红绿灯：红=关闭 黄=最小化 绿=最大化 -->
+    <div class="traffic">
+      <i class="tl-close" id="winClose" title="关闭"><span>×</span></i>
+      <i class="tl-min" id="winMin" title="最小化"><span>−</span></i>
+      <i class="tl-max" id="winMax" title="最大化"><span>＋</span></i>
+    </div>
+    <!-- 侧边栏开合 -->
+    <div class="tb-group glass">
+      <button class="tb-btn" id="sideToggle" title="显示/隐藏侧边栏"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><line x1="9.5" y1="4" x2="9.5" y2="20"/></svg></button>
+    </div>
+    <!-- 窗口标题（Logo + 应用名；总数在状态栏，不在此重复） -->
+    <div class="title-wrap"><span class="brand-mark"><svg viewBox="0 0 1024 1024" aria-hidden="true"><defs><linearGradient id="bm-g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFBA92"/><stop offset=".55" stop-color="#FF7A60"/><stop offset="1" stop-color="#D63E4E"/></linearGradient></defs><rect width="1024" height="1024" rx="230" fill="url(#bm-g)"/><rect x="368" y="296" width="360" height="288" rx="56" fill="#fff" opacity=".42"/><rect x="296" y="380" width="360" height="288" rx="56" fill="#fff"/><circle cx="404" cy="472" r="38" fill="#EE6D55"/><path d="M340 628 472 492 604 628z" fill="#EE6D55"/><rect x="336" y="634" width="280" height="26" rx="13" fill="#EE6D55"/></svg></span><b>Lumen</b></div>
+
+    <!-- 工作区切换器（segment + 新建按钮） -->
+    <div class="tb-group glass ws-switch" id="wsSwitch">
+      <div class="seg" id="wsSeg"></div>
+      <button class="tb-btn" id="wsAdd" title="新建工作区"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+    </div>
+    <!-- 标签（居中：点开为玻璃面板；原来占侧栏的一块高度，腾给文件夹树） -->
+    <div class="tb-spacer"></div>
+    <div class="tagbar" id="tagBar">
+      <button class="tag-btn" id="tagBtn" title="标签">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.2"/></svg>
+        <span class="tb-label">标签</span>
+        <span class="tag-badge hide" id="tagBadge">0</span>
+        <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5"/></svg>
+      </button>
+    </div>
+    <div class="tb-spacer"></div>
+
+    <!-- 视图切换：网格 / 列表 -->
+    <div class="tb-group glass">
+      <div class="seg" id="viewSeg">
+        <button class="tb-btn on" id="viewGrid" title="网格视图"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></button>
+        <button class="tb-btn" id="viewList" title="列表视图"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+      </div>
+    </div>
+
+    <!-- 搜索框（范围切换 + 250ms 防抖） -->
+    <div class="search" id="searchBox">
+      <button class="sf-btn" id="searchField" title="搜索范围">
+        <span id="sfLabel">文件名</span>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5"/></svg>
+      </button>
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <input id="searchInput" placeholder="搜索" spellcheck="false">
+      <span class="clear" id="searchClear" title="清空"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></span>
+    </div>
+
+    <!-- 工具组：添加文件 / 扫描文件夹 / 重新扫描（同一光学基准：18px 视觉框、1.7 描边） -->
+    <div class="tb-group glass">
+      <button class="tb-btn" id="btnAddFiles" title="添加文件"><svg viewBox="0 0 24 24"><rect x="3" y="4.5" width="13.6" height="13.6" rx="3"/><circle cx="7.2" cy="8.5" r="1.3"/><path d="M3.7 15.4 8 11.2l4.3 4.2"/><path d="M19.4 12.4v6.8M16 15.8h6.8"/></svg></button>
+      <button class="tb-btn" id="btnScanFolder" title="扫描文件夹"><svg viewBox="0 0 24 24"><path d="M3 8a2.5 2.5 0 0 1 2.5-2.5h3.4l2 2.2h7.6A2.5 2.5 0 0 1 21 10.2v7.3a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5z"/><path d="M12 10.6v5.2M9.4 13.2h5.2"/></svg></button>
+      <button class="tb-btn" id="btnRescan" title="重新扫描"><svg viewBox="0 0 24 24"><path d="M20.4 12a8.4 8.4 0 1 1-2.46-5.94"/><path d="M20.4 3.6v4.9h-4.9"/></svg></button>
+    </div>
+    <!-- 主题切换 -->
+    <div class="tb-group glass">
+      <button class="tb-btn" id="themeToggle" title="切换外观"><svg viewBox="0 0 24 24"><path d="M21 13A9 9 0 1 1 11 3a7 7 0 0 0 10 10z"/></svg></button>
+    </div>
+  </div>
+
+  <!-- ============ 主体：侧边栏 + 内容区 ============ -->
+  <div class="main">
+    <!-- 侧边栏（库 / 待整理 / 文件夹 / 作者；每个主树可一键收起，文件夹可整棵展开收起） -->
+    <div class="sidebar" id="sidebar">
+      <div class="side-section" data-sec="lib">
+        <div class="side-title">
+          <button class="sec-tw" type="button" title="收起"><svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5"/></svg></button>
+          <span class="st-name">库</span>
+        </div>
+        <div class="side-body">
+          <div class="side-item" data-lib="all"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5-9 9"/></svg><span class="txt">全部媒体</span><span class="count" id="cntAll"></span></div>
+          <div class="side-item" data-lib="image"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="8.5" cy="10" r="1.6"/><path d="M21 15.5 16 10.5 7 19"/></svg><span class="txt">图片</span><span class="count" id="cntImages"></span></div>
+          <div class="side-item" data-lib="video"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M10 9.5v5l4.5-2.5z"/></svg><span class="txt">视频</span><span class="count" id="cntVideos"></span></div>
+        </div>
+      </div>
+      <div class="side-section" data-sec="tidy">
+        <div class="side-title">
+          <button class="sec-tw" type="button" title="收起"><svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5"/></svg></button>
+          <span class="st-name">待整理</span>
+        </div>
+        <div class="side-body">
+          <div class="side-item" data-special="untagged"><svg viewBox="0 0 24 24"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.2"/></svg><span class="txt">无标签</span><span class="count" id="cntUntagged"></span></div>
+          <div class="side-item" data-special="unknownAuthor"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 5-5.5 8-5.5s6.5 1.5 8 5.5"/><circle cx="17.5" cy="6.5" r="3" stroke-dasharray="2 2"/></svg><span class="txt">未识别作者</span><span class="count" id="cntUnknown"></span></div>
+        </div>
+      </div>
+      <div class="side-section" data-sec="folders">
+        <div class="side-title">
+          <button class="sec-tw" type="button" title="收起"><svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5"/></svg></button>
+          <span class="st-name">文件夹</span>
+          <button class="sec-all hide" type="button" data-all="folders" title="收起全部子文件夹">
+            <svg viewBox="0 0 24 24"><path d="M4 9l4-4 4 4"/><path d="M4 15l4 4 4-4"/><path d="M14 8h6M14 16h6"/></svg>
+          </button>
+        </div>
+        <div class="side-body" id="sideFolders"></div>
+      </div>
+      <div class="side-section" data-sec="authors">
+        <div class="side-title">
+          <button class="sec-tw" type="button" title="收起"><svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5"/></svg></button>
+          <span class="st-name">作者</span>
+        </div>
+        <div class="side-body" id="sideAuthors"></div>
+      </div>
+    </div>
+    <!-- 窄屏抽屉模式遮罩（点击关闭侧边栏） -->
+    <div class="side-mask" id="sideMask"></div>
+
+    <!-- 内容区（面包屑 + 媒体网格） -->
+    <div class="content">
+      <div class="content-inner" id="contentInner">
+        <div class="crumb">
+          <b id="crumbTitle">全部媒体</b><span class="sub" id="crumbSub"></span>
+          <div class="right">
+            <button class="crumb-btn" id="groupBtn" title="分组方式"><svg viewBox="0 0 24 24"><path d="M4 6h6M4 12h10M4 18h14"/><path d="M18 5v4M16 7h4"/></svg><span>按文件夹</span></button>
+          </div>
+        </div>
+        <div class="grid-wrap" id="gridWrap"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 批量操作悬浮条（选中 ≥1 项时浮出） ============ -->
+  <div class="batch-bar glass" id="batchBar">
+    <span class="sel-count" id="selCount">已选 0 项</span>
+    <div class="divider"></div>
+    <button class="tb-btn" id="batchTag" title="标签…"><svg viewBox="0 0 24 24"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.2"/></svg><span class="bt-text">标签…</span></button>
+    <button class="tb-btn" id="batchAuthor" title="设为作者…"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 5-5.5 8-5.5s6.5 1.5 8 5.5"/></svg><span class="bt-text">设为作者…</span></button>
+    <button class="tb-btn" id="batchOpen" title="在系统中打开"><svg viewBox="0 0 24 24"><path d="M14 4h6v6M20 4 10 14"/><path d="M20 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h5"/></svg><span class="bt-text">打开</span></button>
+    <button class="tb-btn" id="batchDel" title="移到回收站…"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13"/><path d="M10 11v6M14 11v6"/></svg><span class="bt-text">删除</span></button>
+    <div class="divider"></div>
+    <button class="tb-btn" id="batchClear" title="取消选择"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg><span class="bt-text">取消选择</span></button>
+  </div>
+
+  <!-- ============ 弹层：批量打标签 ============ -->
+  <div class="popover glass" id="tagPop">
+    <div class="pop-title" id="tagPopTitle">点击标签即应用到所选</div>
+    <div id="tagPopList"></div>
+    <div class="pop-sep"></div>
+    <div class="pop-input">
+      <input type="text" id="tagNewName" placeholder="新建标签名称…" maxlength="30">
+      <input type="color" id="tagNewColor" value="#0A84FF" title="标签颜色">
+      <button class="tb-btn primary" id="tagNewBtn">新建</button>
+    </div>
+  </div>
+
+  <!-- ============ 弹层：设为作者 ============ -->
+  <div class="popover glass" id="authorPop">
+    <div class="pop-input">
+      <input type="text" id="authorNewName" placeholder="新建作者名称…" maxlength="40">
+      <button class="tb-btn primary" id="authorNewBtn">新建并应用</button>
+    </div>
+    <div class="pop-sep"></div>
+    <div class="pop-title">选择已有作者</div>
+    <div id="authorPopList"></div>
+    <div class="pop-sep"></div>
+    <div class="pop-item danger" id="authorClear"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>清除作者标记</div>
+  </div>
+
+  <!-- ============ 弹层：新建 / 重命名工作区 ============ -->
+  <div class="popover glass" id="wsPop">
+    <div class="pop-title" id="wsPopTitle">新建工作区</div>
+    <div class="pop-input">
+      <input type="text" id="wsName" placeholder="工作区名称…" maxlength="20">
+      <button class="tb-btn primary" id="wsCreateBtn">创建</button>
+    </div>
+  </div>
+
+  <!-- ============ 弹层：扫描源管理（重扫指定目录 / 添加 / 移除） ============ -->
+  <div class="popover glass" id="srcPop">
+    <div class="pop-title">扫描源 · 勾选要重新扫描的目录</div>
+    <div id="srcList"></div>
+    <div class="pop-sep"></div>
+    <div class="pop-input src-actions">
+      <button class="tb-btn" id="srcAdd" title="添加一个文件夹到扫描源"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>添加文件夹…</button>
+      <button class="tb-btn primary" id="srcRescan">重扫所选</button>
+    </div>
+    <div class="pop-input src-actions">
+      <button class="tb-btn wide" id="srcRescanAll">全部重扫</button>
+    </div>
+  </div>
+
+  <!-- ============ 弹层：备份历史 / 恢复 ============ -->
+  <div class="popover glass" id="backupPop">
+    <div class="pop-item" id="backupNowItem"><svg viewBox="0 0 24 24"><path d="M12 3v12M7.5 10.5 12 15l4.5-4.5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>立即备份</div>
+    <div class="pop-sep"></div>
+    <div class="pop-title">历史备份（点击恢复）</div>
+    <div id="backupList"></div>
+  </div>
+
+  <!-- ============ 弹层：标签（标题栏中央展开；多选 = 同时满足） ============ -->
+  <div class="popover glass tag-panel" id="tagPanel">
+    <div class="tp-head">
+      <span class="tp-title">标签</span>
+      <button class="tp-link" type="button" id="tpUntagged">只看无标签</button>
+    </div>
+    <div class="tp-search">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <input type="text" id="tagFilter" placeholder="筛选标签…" spellcheck="false">
+    </div>
+    <div class="tp-body" id="tagChips"></div>
+    <div class="pop-sep"></div>
+    <div class="tp-foot">
+      <button class="tb-btn" type="button" id="tpClear">清除筛选</button>
+      <button class="tb-btn primary" type="button" id="tpNew">新建标签…</button>
+    </div>
+  </div>
+
+  <!-- ============ 弹层：分组方式（可自定义） ============ -->
+  <div class="popover glass" id="groupPop">
+    <div class="pop-title">分组方式</div>
+    <div id="groupPopList"></div>
+  </div>
+
+  <!-- ============ 确认 / 输入弹层（替代原生 confirm/prompt） ============ -->
+  <div class="modal-wrap" id="modalWrap">
+    <div class="modal glass" id="modalBox"></div>
+  </div>
+
+  <!-- ============ 右键菜单宿主（动态构建） ============ -->
+  <div id="ctxHost"></div>
+
+  <!-- ============ 全屏预览层（lightbox，双击卡片进入） ============ -->
+  <div class="lightbox" id="lightbox">
+    <div class="lb-backdrop" id="lbBackdrop"></div>
+    <div class="lb-topbar glass">
+      <div class="lb-info">
+        <b id="lbName"></b>
+        <span class="lb-meta" id="lbMeta"></span>
+      </div>
+      <div class="lb-actions">
+        <button class="tb-btn" id="lbOpen"><svg viewBox="0 0 24 24"><path d="M14 4h6v6M20 4 10 14"/><path d="M20 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h5"/></svg>在系统中打开</button>
+        <button class="tb-btn" id="lbDelete" title="移到回收站…"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13"/><path d="M10 11v6M14 11v6"/></svg></button>
+        <button class="tb-btn" id="lbClose" title="关闭（Esc）"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </div>
+    </div>
+    <button class="lb-nav prev" id="lbPrev" title="上一项（←）"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <div class="lb-stage" id="lbStage"></div>
+    <button class="lb-nav next" id="lbNext" title="下一项（→）"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+  </div>
+
+  <!-- ============ 状态栏 ============ -->
+  <div class="statusbar">
+    <span class="dot" id="statusDot"></span><span id="statusLeft">就绪</span>
+    <div class="scan hide" id="scanBox">
+      <span id="scanText"></span>
+      <div class="progress"><i id="scanBar"></i></div>
+      <span id="scanNum"></span>
+    </div>
+    <div class="right">
+      <!-- 缩略图尺寸滑块（列表视图下禁用） -->
+      <span class="zoom-ctl" id="zoomCtl" title="缩略图大小">
+        <svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2.5"/></svg>
+        <input type="range" id="zoomSlider" min="140" max="360" step="4" value="210">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/></svg>
+      </span>
+      <button class="sb-btn" id="btnBackup" title="立即备份（右键查看历史/恢复）"><svg viewBox="0 0 24 24"><path d="M12 3v12M7.5 10.5 12 15l4.5-4.5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>备份</button>
+    </div>
+  </div>
+
+  <!-- ============ Toast 容器（右上角滑入） ============ -->
+  <div class="toasts" id="toasts"></div>
+
+  <!-- ============ 无边框窗口缩放热区（8 向，拖拽交给系统原生缩放） ============ -->
+  <div class="rz rz-t" data-edge="t"></div>
+  <div class="rz rz-b" data-edge="b"></div>
+  <div class="rz rz-l" data-edge="l"></div>
+  <div class="rz rz-r" data-edge="r"></div>
+  <div class="rz rz-lt" data-edge="lt"></div>
+  <div class="rz rz-rt" data-edge="rt"></div>
+  <div class="rz rz-lb" data-edge="lb"></div>
+  <div class="rz rz-rb" data-edge="rb"></div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
+<!-- ============================================================
+     区块功能索引
+     - 标题栏    : 红绿灯 / 侧边栏开关 / 工作区切换器 / 视图切换(网格·列表) / 搜索(范围+防抖) / 扫描工具组 / 主题
+     - 侧边栏    : 库、待整理、文件夹、作者、标签（动态渲染容器）
+     - 抽屉遮罩  : #sideMask（<1000px 时侧边栏转为悬浮抽屉，点击遮罩关闭）
+     - 内容区    : 面包屑 + #gridWrap（网格/列表双视图、骨架屏、空状态、左键框选）
+     - 批量操作条: #batchBar（标签… / 设为作者… / 打开 / 取消选择；窄屏收成纯图标）
+     - 弹层      : #tagPop、#authorPop、#wsPop、#backupPop
+     - 预览层    : #lightbox（fixed 居中；视频/图片、顶栏元信息、左右切换、Esc/backdrop 关闭）
+     - 状态栏    : 总数/已选、扫描进度、缩略图尺寸滑块、备份按钮
+     - Toast     : #toasts 操作反馈容器
+     ============================================================ -->
