@@ -1,4 +1,4 @@
-# Lumen
+﻿# Lumen
 
 **A lightweight, fully local photo & video library for Windows.**
 No account. No cloud. No upload. Your files are never moved.
@@ -155,7 +155,7 @@ WebView2 有个坑：窗口不可见时会挂起渲染进程，`loaded` 事件�
 
 ### 方式一：安装包（推荐）
 
-1. 下载 `Lumen-1.0.0-setup.exe`；
+1. 下载 `Lumen-1.1.1-setup.exe`；
 2. 双击 → 选安装位置（默认 `%LOCALAPPDATA%\Programs\Lumen`，也可换 D 盘）；
 3. 勾选桌面 / 开始菜单快捷方式 → 安装 → 完成。
 
@@ -163,7 +163,7 @@ WebView2 有个坑：窗口不可见时会挂起渲染进程，`loaded` 事件�
 
 ### 方式二：绿色版
 
-1. 下载 `Lumen-1.0.0-windows-x64.zip`，解压到有写权限的位置（桌面、D 盘、U 盘都行）；
+1. 下载 `Lumen-1.1.1-windows-x64.zip`，解压到有写权限的位置（桌面、D 盘、U 盘都行）；
 2. 双击 `Lumen.exe`。**必须整个文件夹一起**（依赖同目录的 `_internal\`，只拷 exe 打不开）。
 
 ### 运行环境
@@ -289,3 +289,4 @@ runtime\Scripts\python -m PyInstaller mediavault_web.spec --noconfirm
 ## License
 
 [MIT](LICENSE) © Lumen contributors
+
