@@ -571,47 +571,164 @@ function renderSidebar() {
   if (tp && tp.classList.contains('show')) renderTagPanel();
 }
 
-/* ---- 侧栏分区高度拖拽：上下拉动分隔条改变相邻两区的高度 ---- */
-function initSidebarResize() {
+/* ---- 侧栏分区高度拖拽：上下拉动分隔条改变相邻两区的高度 ----
+   注意两个坑（这两个坑会让"拉大"完全失效）：
+   1) .side-section 默认 flex: 0 1 auto（shrink=1）。侧栏内容撑满容器时，
+      浏览器会把拉大的部分按 shrink 比例当场压回去 —— 表现就是"只能缩小、拖不大"。
+      所以拖拽时必须改成 flex: 0 0 Npx（不可压缩）。
+   2) 可分配的总高度必须扣掉"其它分区 + 所有拖拽条 + 侧栏 padding"，
+      否则两个分区的固定高度会超出容器，被 .sidebar 的 overflow:hidden 裁掉。
+*/
+const SEC_MIN = 58;              // 每区最小高度：标题 + 至少一行内容
+const SEC_KEY = 'mm.secH';
+
+function secList(sb) {
+  return [...sb.querySelectorAll(':scope > .side-section[data-sec]')];
+}
+
+function usableHeight(sb) {
+  const cs = getComputedStyle(sb);
+  const pad = (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
+  let grip = 0;
+  sb.querySelectorAll(':scope > .side-grip').forEach(g => {
+    grip += g.getBoundingClientRect().height;
+  });
+  return Math.max(0, sb.clientHeight - pad - grip);
+}
+
+function setSecH(sec, px) {
+  sec.style.flex = '0 0 ' + Math.max(SEC_MIN, Math.round(px)) + 'px';
+}
+
+/* 折叠/展开或窗口尺寸变化后，把未折叠的分区按比例重新分配可用高度 */
+function rebalanceSecs() {
   const sb = $('sidebar');
-  const secs = [...sb.querySelectorAll(':scope > .side-section')];
-  const KEY = 'mm.secH';
-  let saved = {};
-  try { saved = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (_) {}
-  secs.forEach((sec, i) => {
-    if (!sec.dataset.sec) return;
-    const px = saved[sec.dataset.sec];
-    if (px != null) sec.style.flexBasis = px + 'px';
-    if (i < secs.length - 1) {
-      const grip = h('div', { class: 'side-grip', title: '拖动调整上下两个区块的高度' });
-      grip.addEventListener('pointerdown', (e) => startSecDrag(e, sec, secs[i + 1], grip, saved, KEY));
-      sec.after(grip);
+  if (!sb) return;
+  const secs = secList(sb);
+  const room = usableHeight(sb);
+  let fixed = 0;
+  const items = [];
+  secs.forEach(s => {
+    if (s.classList.contains('collapsed')) fixed += s.getBoundingClientRect().height;
+    else items.push(s);
+  });
+  if (!items.length) return;
+  const avail = Math.max(SEC_MIN * items.length, room - fixed);
+  const cur = items.reduce((n, s) => n + s.getBoundingClientRect().height, 0);
+  if (cur <= 0) return;
+  const k = avail / cur;
+  items.forEach(s => setSecH(s, s.getBoundingClientRect().height * k));
+}
+
+function persistSecHeights() {
+  const out = {};
+  document.querySelectorAll('#sidebar > .side-section[data-sec]').forEach(s => {
+    if (!s.classList.contains('collapsed')) {
+      out[s.dataset.sec] = Math.round(s.getBoundingClientRect().height);
     }
   });
+  try { localStorage.setItem(SEC_KEY, JSON.stringify(out)); } catch (_) {}
 }
-function startSecDrag(e, a, b, grip, saved, KEY) {
+
+function initSidebarResize() {
+  const sb = $('sidebar');
+  if (!sb) return;
+  const secs = secList(sb);
+
+  // 先插好所有拖拽条，usableHeight() 才好把它们的总高扣掉
+  secs.forEach((sec, i) => {
+    if (i >= secs.length - 1) return;
+    const grip = h('div', { class: 'side-grip', title: '上下拖动，调整两个区块的高度' });
+    grip.addEventListener('pointerdown', (e) => startSecDrag(e, sec, secs[i + 1], grip));
+    sec.after(grip);
+  });
+
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem(SEC_KEY) || '{}'); } catch (_) {}
+  const anySaved = secs.some(s => saved[s.dataset.sec] != null);
+  if (anySaved) {
+    // 恢复上次高度；窗口比上次小时按比例收进来，避免一上线就溢出
+    const room = usableHeight(sb);
+    let used = 0;
+    secs.forEach(s => { if (saved[s.dataset.sec] != null) used += saved[s.dataset.sec]; });
+    const k = used > room && used > 0 ? room / used : 1;
+    secs.forEach(s => {
+      const px = saved[s.dataset.sec];
+      if (px != null) setSecH(s, px * k);
+    });
+  } else {
+    // 首次布局：不能让浏览器按 flex-shrink 把上面几个分区压成一条（原 bug 的观感来源）。
+    // 按可用空间均分，给内容高的分区（文件夹/作者）多留一点，富余全部给"文件夹"。
+    const room = usableHeight(sb);
+    const base = Math.max(SEC_MIN, Math.floor(room / secs.length));
+    let used = 0;
+    secs.forEach(s => {
+      const content = s.getBoundingClientRect().height;
+      const want = Math.round(Math.min(base, Math.max(SEC_MIN, content + 24)));
+      s._want = want;
+      used += want;
+    });
+    // 富余给文件夹区（内容通常会更多）
+    let spare = room - used;
+    secs.forEach(s => {
+      if (spare > 0 && (s.dataset.sec === 'folders' || s.dataset.sec === 'authors')) {
+        s._want += Math.floor(spare / 2);
+        spare -= Math.floor(spare / 2);
+      }
+      setSecH(s, s._want);
+      delete s._want;
+    });
+  }
+
+  // 窗口缩放后重新平衡（防抖）
+  let rt = 0;
+  window.addEventListener('resize', () => {
+    clearTimeout(rt);
+    rt = setTimeout(() => { rebalanceSecs(); persistSecHeights(); }, 140);
+  });
+}
+
+function startSecDrag(e, a, b, grip) {
+  if (e.button != null && e.button !== 0) return;
   e.preventDefault();
   grip.classList.add('drag');
-  const ha = a.getBoundingClientRect().height, hb = b.getBoundingClientRect().height;
-  const sum = ha + hb, MIN = 44;
-  const y0 = e.clientY;
   document.body.classList.add('resizing-row');
+  const sb = $('sidebar');
+  const secs = secList(sb);
+
+  // 其它分区至少要留下的高度（它们仍可被压缩到 min-height，所以用最小值算上限）
+  let othersMin = 0;
+  secs.forEach(s => {
+    if (s !== a && s !== b && !s.classList.contains('collapsed')) othersMin += SEC_MIN;
+  });
+  // a 能拉到多大：可用高度 − 其它分区最小需求 − b 的最小高度
+  const hi = Math.max(SEC_MIN + 1, usableHeight(sb) - othersMin - SEC_MIN);
+
+  let ha = a.getBoundingClientRect().height;
+  let hb = b.getBoundingClientRect().height;
+  const sum = ha + hb;
+  // 两个分区都变成不可压缩，否则拉大的部分会被 flex-shrink 立刻吃掉
+  setSecH(a, ha);
+  setSecH(b, hb);
+
+  const y0 = e.clientY;
   const move = (ev) => {
-    const na = Math.min(sum - MIN, Math.max(MIN, ha + (ev.clientY - y0)));
-    a.style.flexBasis = na + 'px';
-    b.style.flexBasis = (sum - na) + 'px';
+    const na = Math.min(hi, Math.max(SEC_MIN, ha + (ev.clientY - y0)));
+    // b 至少 SEC_MIN；a+b 超出原总和时，多出来的空间由下面其它分区让出
+    setSecH(a, na);
+    setSecH(b, Math.max(SEC_MIN, sum - na));
   };
   const up = () => {
     grip.classList.remove('drag');
     document.body.classList.remove('resizing-row');
     window.removeEventListener('pointermove', move);
     window.removeEventListener('pointerup', up);
-    saved[a.dataset.sec] = a.getBoundingClientRect().height;
-    saved[b.dataset.sec] = b.getBoundingClientRect().height;
-    try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch (_) {}
+    window.removeEventListener('pointercancel', up);
+    persistSecHeights();
   };
   window.addEventListener('pointermove', move);
   window.addEventListener('pointerup', up);
+  window.addEventListener('pointercancel', up);
 }
 
 /* ---- 侧栏主分区：一键收起 / 展开（按工作区记忆，macOS 手风琴手感） ---- */
@@ -658,9 +775,13 @@ function toggleSection(key) {
   saveSecState();
   const tw = sec.querySelector('.sec-tw');
   if (tw) { tw.classList.toggle('collapsed', collapse); tw.title = collapse ? '展开' : '收起'; }
+  // 折叠/展开会改变可分配空间：立刻重新平衡，别等用户再拖一次
+  requestAnimationFrame(() => rebalanceSecs());
   clearTimeout(sec._mt);
   sec._mt = setTimeout(() => {
     if (body && !sec.classList.contains('collapsed')) body.style.maxHeight = '';
+    rebalanceSecs();
+    persistSecHeights();
   }, 320);
 }
 

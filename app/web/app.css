@@ -208,7 +208,7 @@ button { font-family: inherit; }
 .side-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
 
 /* 分区之间的拖拽分隔条 */
-.side-grip { flex: 0 0 10px; height: 10px; margin: 2px -10px 0; cursor: row-resize; position: relative; }
+.side-grip { flex: 0 0 10px; height: 10px; margin: 2px -10px 0; cursor: row-resize; position: relative; touch-action: none; }
 .side-grip::after {
   content: ''; position: absolute; left: 10px; right: 10px; top: 4px; height: 2px;
   border-radius: 1px; background: transparent; transition: background .15s;
